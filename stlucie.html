@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Weather Watch — St. Lucie Inlet, Stuart FL</title>
 <style>
@@ -166,6 +166,68 @@
   .banner.show{ display:flex; }
   .banner .headline{ font-size:64px; font-weight:900; letter-spacing:1px; }
   .banner .sub{ font-size:24px; margin-top:18px; color:#ffdede; max-width:1100px; }
+
+  /* ================= MOBILE (portrait phones, e.g. iPhone 17 Pro Max ~440px) =================
+     The desktop layout is a fixed, non-scrolling 2-column wall-display grid.
+     On phones we reflow it into a scrollable single-column stack:
+     header → conditions → marine strip → radar → lightning → alerts → footer.
+     dvh units keep map panels sized correctly as Safari's toolbar collapses. */
+  @media (max-width: 740px){
+    html,body{ overflow:auto; height:auto; min-height:100%; -webkit-text-size-adjust:100%; }
+    .frame{
+      position:static; display:flex; flex-direction:column;
+      height:auto; min-height:100dvh; width:100%;
+    }
+    header{
+      flex-wrap:wrap; gap:8px 12px;
+      padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+    }
+    .title{ order:1; min-width:0; }
+    .title .eyebrow{ font-size:9px; letter-spacing:2px; }
+    .title h1{ font-size:19px; letter-spacing:0.3px; }
+    .clock{ order:2; margin-left:auto; }
+    .clock .time{ font-size:24px; }
+    .clock .date{ font-size:10px; letter-spacing:0.5px; }
+    .conditions{
+      order:3; width:100%; justify-content:space-between; gap:10px;
+      padding-top:8px; border-top:1px solid var(--line);
+    }
+    .cond-item{ min-width:0; flex:1; }
+    .cond-value{ font-size:20px; white-space:nowrap; }
+    .cond-label{ font-size:9px; letter-spacing:1.5px; }
+    .cond-divider{ height:30px; }
+
+    .marine-strip{
+      gap:8px; justify-content:space-around; flex-wrap:wrap; row-gap:8px;
+      padding:10px 8px;
+    }
+    .marine-item{ gap:8px; }
+    .marine-icon{ font-size:18px; }
+    .marine-value{ font-size:15px; }
+    .marine-label{ font-size:8px; letter-spacing:1.5px; }
+    .marine-divider{ display:none; }
+
+    /* Map panels need explicit heights once out of the fixed grid */
+    .radar-panel{ flex:none; height:46dvh; min-height:300px; }
+    .side-panel{ flex:none; height:auto; }
+    .lightning-wrap{ flex:none; height:38dvh; min-height:260px; }
+    .alerts-wrap{ flex:none; min-height:150px; padding:34px 14px 14px; overflow:visible; }
+    .alerts-list{ height:auto; max-height:38dvh; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    .panel-label{ font-size:10px; letter-spacing:2px; top:12px; left:14px; }
+    .radar-stamp,.lightning-stamp{ font-size:10px; left:14px; }
+    .radar-unavailable{ padding:30px; font-size:14px; }
+
+    footer{
+      flex-wrap:wrap; gap:4px 14px; height:auto;
+      padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+      font-size:10px; letter-spacing:0.5px;
+    }
+    footer .src{ flex-wrap:wrap; gap:2px 14px; }
+
+    .banner{ padding:24px; }
+    .banner .headline{ font-size:32px; }
+    .banner .sub{ font-size:16px; margin-top:12px; }
+  }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -471,6 +533,12 @@ try{
   setTimeout(() => lightningMap.invalidateSize(), 250);
   window.addEventListener('load', () => lightningMap.invalidateSize());
   window.addEventListener('resize', () => lightningMap.invalidateSize());
+  // iPhone rotation: dvh-based panel heights change after the rotate animation,
+  // so re-measure both maps once the new layout has settled.
+  window.addEventListener('orientationchange', () => setTimeout(() => {
+    lightningMap.invalidateSize();
+    if (typeof radarMap !== 'undefined' && radarMap) radarMap.invalidateSize();
+  }, 350));
 }catch(err){
   console.error("lightning map init failed", err);
   const stamp = document.getElementById('lightningStamp');
